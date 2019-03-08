@@ -20,6 +20,7 @@
 
         document.addEventListener('quickpicresults', function(e) {
             var file = e.detail;
+            console.log(file);
             var filename = file.name || (Date.now().toString() + '.' +  file.extension);
             var base64 = file.base64;
 

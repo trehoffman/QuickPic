@@ -132,27 +132,6 @@ function QuickPic(config) {
         }
     };
 
-    me.readFile = function(file) {
-        var reader = new FileReader();
-
-        reader.addEventListener("load", function () {
-            me.file.set('base64', reader.result);
-            me.file.set('name', file.name);
-
-            if (!me.file.supported) {
-                alert('file type not supported');
-                return;
-            }
-
-            me.sendFile();
-            me.close();
-        }, false);
-
-        if (file) {
-            reader.readAsDataURL(file);
-        }
-    };
-
     me.send = function (name, detail) {
         var event = new CustomEvent(name, {
             detail: detail
@@ -190,7 +169,11 @@ function QuickPic(config) {
                 me.startVideoStream();
             } else if (e.target.classList.contains('file')) {
                 var file = e.target.files[0];
-                me.readFile(file);
+                me.file.set('file', file);
+                me.file.readFile(function() {
+                    me.sendFile();
+                    me.close();
+                });
             }
         });
 
@@ -215,6 +198,10 @@ function QuickPic(config) {
             } else if (e.target.classList.contains('cancel')) {
                 me.closePreview();
             }
+        });
+
+        document.addEventListener('fileread', function(e) {
+            console.log(e);
         });
     };
 
@@ -251,10 +238,11 @@ function QuickPic(config) {
 function File(config) {
     var me = this;
     me.config = config || {};
-    me.base64 = '';
-    me.type = '';
-    me.extension = '';
-    me.supported = false;
+    me.file;
+    me.base64;
+    me.type;
+    me.extension;
+    me.supported;
 
     me.init = function() {
         for (var property in config) {
@@ -264,9 +252,10 @@ function File(config) {
         }
     };
 
-    me.compile = function() {
+    me.compileFromBase64 = function() {
         try {
-            var info = me.base64.split(';')[0].split(':')[1].split('/');
+            var base64 = me.base64;
+            var info = base64.split(';')[0].split(':')[1].split('/');
             me.type = (info[0] || '');
             me.extension =  (info[1] || '');
             
@@ -290,12 +279,72 @@ function File(config) {
         }
     };
 
+    me.compileFromFile = function() {
+        try {
+            var file = me.file;
+            var info = file.type.split('/');
+
+            me.base64 = null;
+
+            me.type = info[0];
+            me.extension = info[1];
+            
+            me.lastModified = file.lastModified;
+            me.lastModifiedDate = file.lastModifiedDate;
+            me.name = file.name;
+            me.size = file.size;
+            me.webkitRelativePath = file.webkitRelativePath;
+
+            if ((me.supported_types) && (me.supported_types.indexOf(me.type) == -1)) {
+                me.supported = false;
+                return false;
+            }
+
+            if ((me.supported_extensions) && (me.supported_extensions.indexOf(me.extension) == -1)) {
+                me.supported = false;
+                return false;
+            }
+            
+            me.supported = true;
+            return true;
+        } catch (error) {
+            console.log(error);
+            me.type = null;
+            me.extension = null;
+            me.supported = null;
+        }
+    };
+
+    me.readFile = function(callback) {
+        var file = me.file;
+        var reader = new FileReader();
+
+        reader.addEventListener("load", function () {
+            me.base64 = reader.result;
+            if (callback) callback();
+        }, false);
+
+        if (file) {
+            reader.readAsDataURL(file);
+        }
+    };
+
+    me.send = function (name, detail) {
+        var event = new CustomEvent(name, {
+            detail: detail
+        });
+        document.dispatchEvent(event);
+    };
+
     me.set = function(field, value) {
         me[field] = value;
 
         switch(field) {
             case 'base64':
-                me.compile();
+                me.compileFromBase64();
+                break;
+            case 'file':
+                me.compileFromFile();
                 break;
             default: 
                 break;
