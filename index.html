@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+
+<html>
+    <head>
+        <title>QuickPic</title>
+        <meta charset="UTF-8"/>
+        <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    </head>
+    <body>
+        <button type="button" class="quickpic">QuickPic</button>
+        <ul class="downloads"></ul>
+    </body>
+    <script src="js/quickpic.js"></script>
+    <script>
+        document.addEventListener('click', function(e) {
+            if (e.target.classList.contains('quickpic')) {
+                new QuickPic();
+            }
+        });
+
+        document.addEventListener('quickpicresults', function(e) {
+            var file = e.detail;
+            var filename = file.name || (Date.now().toString() + '.' +  file.extension);
+            var base64 = file.base64;
+
+            document.querySelector('ul.downloads').innerHTML += '<li>'
+                + '<a href="' + base64 + '" download="' + filename + '">' + filename + '</a>'
+                + '</li>';
+        });
+    </script>
+</html>
