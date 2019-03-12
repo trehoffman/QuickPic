@@ -171,6 +171,25 @@ function QuickPic(config) {
                 var file = e.target.files[0];
                 me.file.set('file', file);
                 me.file.readFile(function() {
+                    if (!me.file.is_supported) {
+                        if (!me.file.is_type_supported) {
+                            alert('this file type is not supported');
+                            return;
+                        }
+
+                        if (!me.file.is_extension_supported) {
+                            alert('this file extensoin is not supported');
+                            return;
+                        }
+
+                        if (!me.file.is_size_supported) {
+                            alert('this file size is not supported');
+                            return;
+                        }
+
+                        alert('this file is not supported');
+                        return;
+                    }
                     me.sendFile();
                     me.close();
                 });
@@ -241,8 +260,15 @@ function File(config) {
     me.file;
     me.base64;
     me.type;
+    me.is_type_supported;
+    me.supported_types;
     me.extension;
-    me.supported;
+    me.is_extension_supported;
+    me.supported_extensions;
+    me.is_supported;
+    me.size;
+    me.size_limit;
+    me.is_size_supported;
 
     me.init = function() {
         for (var property in config) {
@@ -258,19 +284,9 @@ function File(config) {
             var info = base64.split(';')[0].split(':')[1].split('/');
             me.type = (info[0] || '');
             me.extension =  (info[1] || '');
+            me.is_supported = me.isSupported();
             
-            if ((me.supported_types) && (me.supported_types.indexOf(me.type) == -1)) {
-                me.supported = false;
-                return false;
-            }
-
-            if ((me.supported_extensions) && (me.supported_extensions.indexOf(me.extension) == -1)) {
-                me.supported = false;
-                return false;
-            }
-            
-            me.supported = true;
-            return true;
+            return me.is_supported;
         } catch (error) {
             console.log(error);
             me.type = '';
@@ -294,25 +310,54 @@ function File(config) {
             me.name = file.name;
             me.size = file.size;
             me.webkitRelativePath = file.webkitRelativePath;
+            me.is_supported = me.isSupported();
 
-            if ((me.supported_types) && (me.supported_types.indexOf(me.type) == -1)) {
-                me.supported = false;
-                return false;
-            }
-
-            if ((me.supported_extensions) && (me.supported_extensions.indexOf(me.extension) == -1)) {
-                me.supported = false;
-                return false;
-            }
-            
-            me.supported = true;
-            return true;
+            return me.is_supported;
         } catch (error) {
             console.log(error);
             me.type = null;
             me.extension = null;
             me.supported = null;
         }
+    };
+
+    me.isSupported = function() {
+        me.is_type_supported = me.isTypeSupported();
+        me.is_extension_supported = me.isExtensionSupported();
+        me.is_size_supported = me.isSizeSupported();
+        if (me.is_type_supported && me.is_extension_supported && me.is_size_supported) {
+            return true;
+        }
+        return false;
+    };
+
+    me.isTypeSupported = function() {
+        var supported_types = (me.supportedTypes || [])
+        supported_types.map(type => type.toLowerCase());
+        var type = (me.type || '').toLowerCase();
+        if ((supported_types.length > 0) && (me.supported_types.indexOf(me.type) == -1)) {
+            return false;
+        }
+        return true;
+    };
+
+    me.isExtensionSupported = function() {
+        var supported_extensions = (me.supported_extensions || []);
+        supported_extensions.map(extension => extension.toLowerCase());
+        var extension = (me.extension || '').toLowerCase();
+        if ((supported_extensions.length > 0) && (me.supported_extensions.indexOf(me.extension) == -1)) {
+            return false;
+        }
+        return true;
+    };
+
+    me.isSizeSupported = function() {
+        var size_limit = (me.size_limit || false);
+        var size = (me.size || 0);
+        if ((size_limit) && (size > size_limit)) {
+            return false;
+        }
+        return true;
     };
 
     me.readFile = function(callback) {

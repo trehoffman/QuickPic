@@ -14,7 +14,12 @@
     <script>
         document.addEventListener('click', function(e) {
             if (e.target.classList.contains('quickpic')) {
-                new QuickPic();
+                new QuickPic({
+                    file: new File({
+                        supported_extensions: ['jpg','jpeg','tiff','gif','bmp','png','webp','ppm','pgm','pbm','pnm','pdf'],
+                        size_limit: (1048576*10)
+                    })
+                });
             }
         });
 
